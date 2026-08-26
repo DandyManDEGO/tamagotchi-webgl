@@ -5,7 +5,7 @@
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     
-    <!-- CSP Політика для роботи Unity WebGL -->
+    <!-- CSP Політика для роботи Unity WebGL та Telegram SDK -->
     <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:;">
 
     <title>TamagoChi AI</title>
@@ -45,6 +45,8 @@
         background: #231F20;
         display: block;
       }
+      
+      /* Анімований лоадер */
       #loading-cover {
         position: absolute;
         top: 0;
@@ -83,6 +85,7 @@
   <body>
     <div id="unity-container">
       <canvas id="unity-canvas" tabindex="-1"></canvas>
+      
       <div id="loading-cover">
         <div class="spinner"></div>
         <div id="loading-text">Завантаження 0%</div>
@@ -91,6 +94,7 @@
 
     <script src="Build/tamagotchi-webgl.loader.js"></script>
     <script>
+      // Розгортаємо Telegram WebApp
       if (window.Telegram && window.Telegram.WebApp) {
         window.Telegram.WebApp.ready();
         window.Telegram.WebApp.expand();
@@ -102,9 +106,9 @@
 
       createUnityInstance(canvas, {
         arguments: [],
-        dataUrl: "Build/tamagotchi-webgl.data",
-        frameworkUrl: "Build/tamagotchi-webgl.framework.js",
-        codeUrl: "Build/tamagotchi-webgl.wasm",
+        dataUrl: "Build/tamagotchi-webgl.data.gz",
+        frameworkUrl: "Build/tamagotchi-webgl.framework.js.gz",
+        codeUrl: "Build/tamagotchi-webgl.wasm.gz",
         streamingAssetsUrl: "StreamingAssets",
         companyName: "DefaultCompany",
         productName: "TamagoChi",
