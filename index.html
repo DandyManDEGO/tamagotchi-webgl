@@ -6,7 +6,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 
     <!-- CSP Політика для WebGL та Telegram SDK -->
-    <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:;">
+    <!-- WebAssembly вимагає 'wasm-unsafe-eval'; без явного script-src деякі
+         хостинги додають власний CSP-заголовок і блокують запуск Unity -->
+    <meta http-equiv="Content-Security-Policy" content="default-src * data: blob: 'unsafe-inline' 'unsafe-eval'; script-src * data: blob: 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval'; worker-src * blob:; connect-src *; img-src * data: blob:; style-src * 'unsafe-inline';">
 
     <title>TamagoChi</title>
 
@@ -294,9 +296,9 @@
         // ---------- Запуск Unity ----------
         createUnityInstance(canvas, {
           arguments: [],
-          dataUrl: "Build/tamagotchi-webgl.data.br",
-          frameworkUrl: "Build/tamagotchi-webgl.framework.js.br",
-          codeUrl: "Build/tamagotchi-webgl.wasm.br",
+          dataUrl: "Build/tamagotchi-webgl.data.unityweb",
+          frameworkUrl: "Build/tamagotchi-webgl.framework.js.unityweb",
+          codeUrl: "Build/tamagotchi-webgl.wasm.unityweb",
           streamingAssetsUrl: "StreamingAssets",
           companyName: "DefaultCompany",
           productName: "TamagoChi",
