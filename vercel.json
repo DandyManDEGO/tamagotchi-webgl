@@ -1,11 +1,11 @@
 {
   "headers": [
     {
-      "source": "/Build/(.*).gz",
+      "source": "/Build/(.*).br",
       "headers": [
         {
           "key": "Content-Encoding",
-          "value": "gzip"
+          "value": "br"
         }
       ]
     }

@@ -27,19 +27,13 @@
 
       createUnityInstance(document.querySelector("#unity-canvas"), {
         arguments: [],
-        dataUrl: "Build/tamagotchi-webgl.data.gz",
-        frameworkUrl: "Build/tamagotchi-webgl.framework.js.gz",
-        codeUrl: "Build/tamagotchi-webgl.wasm.gz",
-        streamingAssetsUrl: "StreamingAssets",
-        companyName: "DefaultCompany",
-        productName: "TamagoChi",
-        productVersion: "0.1.0",
-        // matchWebGLToCanvasSize: false, // Uncomment this to separately control WebGL canvas render size and DOM element size.
-        // devicePixelRatio: 1, // Uncomment this to override low DPI rendering on high DPI displays.
-      }).then((unityInstance) => {
-      }).catch((message) => {
-        alert(message);
-      });
+  dataUrl: "Build/tamagotchi-webgl.data.br",
+  frameworkUrl: "Build/tamagotchi-webgl.framework.js.br",
+  codeUrl: "Build/tamagotchi-webgl.wasm.br",
+  streamingAssetsUrl: "StreamingAssets",
+  companyName: "DefaultCompany",
+  productName: "TamagoChi",
+  productVersion: "0.1.0",      });
     </script>
   </body>
 </html>
