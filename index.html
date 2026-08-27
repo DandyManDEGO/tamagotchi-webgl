@@ -1,45 +1,320 @@
 <!DOCTYPE html>
-<html lang="en-us">
+<html lang="uk">
   <head>
     <meta charset="utf-8">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <title>Unity Web Player | TamagoChi</title>
-  </head>
-  <body style="text-align: center; padding: 0; border: 0; margin: 0;">
-    <canvas id="unity-canvas" width=960 height=600 tabindex="-1" style="width: 960px; height: 600px; background: #231F20"></canvas>
-    <script src="Build/tamagotchi-webgl.loader.js"></script>
-    <script>
-      if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
-        // Mobile device style: fill the whole browser client area with the game canvas:
-        var meta = document.createElement('meta');
-        meta.name = 'viewport';
-        meta.content = 'width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes';
-        document.getElementsByTagName('head')[0].appendChild(meta);
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 
-        var canvas = document.querySelector("#unity-canvas");
-        canvas.style.width = "100%";
-        canvas.style.height = "100%";
-        canvas.style.position = "fixed";
+    <!-- CSP Політика для WebGL та Telegram SDK -->
+    <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:;">
 
-        document.body.style.textAlign = "left";
+    <title>TamagoChi</title>
 
+    <!-- Telegram WebApp SDK -->
+    <script src="https://telegram.org/js/telegram-web-app.js" crossorigin="anonymous"></script>
+
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        -webkit-touch-callout: none;
+        -webkit-user-select: none;
+        user-select: none;
       }
 
-      createUnityInstance(document.querySelector("#unity-canvas"), {
-        arguments: [],
-        dataUrl: "Build/tamagotchi-webgl.data.br",
-        frameworkUrl: "Build/tamagotchi-webgl.framework.js.br",
-        codeUrl: "Build/tamagotchi-webgl.wasm.br",
-        streamingAssetsUrl: "StreamingAssets",
-        companyName: "DefaultCompany",
-        productName: "TamagoChi",
-        productVersion: "0.1.0",
-        // matchWebGLToCanvasSize: false, // Uncomment this to separately control WebGL canvas render size and DOM element size.
-        // devicePixelRatio: 1, // Uncomment this to override low DPI rendering on high DPI displays.
-      }).then((unityInstance) => {
-      }).catch((message) => {
-        alert(message);
-      });
+      html, body {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background-color: #17121b;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+        /* Блокуємо "відтягування" сторінки, щоб жести йшли у канвас */
+        overscroll-behavior: none;
+        touch-action: none;
+      }
+
+      #unity-container {
+        width: 100vw;
+        height: 100vh;
+        position: fixed;
+        top: 0;
+        left: 0;
+      }
+
+      #unity-canvas {
+        width: 100%;
+        height: 100%;
+        background: #17121b;
+        display: block;
+        touch-action: none;
+      }
+
+      /* ---------- Екран завантаження ---------- */
+
+      #loading-cover {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 99;
+        background: radial-gradient(circle at 50% 35%, #2c2136 0%, #17121b 70%);
+        transition: opacity 0.6s ease;
+      }
+
+      /* Кільце прогресу: обертається завжди, заповнюється за відсотком */
+      .ring {
+        position: relative;
+        width: 96px;
+        height: 96px;
+        margin-bottom: 26px;
+      }
+
+      .ring svg {
+        width: 100%;
+        height: 100%;
+        transform: rotate(-90deg);
+      }
+
+      .ring-track {
+        fill: none;
+        stroke: rgba(255, 255, 255, 0.08);
+        stroke-width: 6;
+      }
+
+      .ring-fill {
+        fill: none;
+        stroke: url(#ringGradient);
+        stroke-width: 6;
+        stroke-linecap: round;
+        /* 2 * PI * 45 ≈ 282.7 */
+        stroke-dasharray: 282.7;
+        stroke-dashoffset: 282.7;
+        transition: stroke-dashoffset 0.25s linear;
+      }
+
+      /* Пульсуюче серце в центрі кільця */
+      .ring-heart {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 26px;
+        animation: beat 1.4s ease-in-out infinite;
+      }
+
+      @keyframes beat {
+        0%, 100% { transform: scale(1);    opacity: 0.85; }
+        50%      { transform: scale(1.18); opacity: 1; }
+      }
+
+      #loading-percent {
+        color: #ffffff;
+        font-size: 30px;
+        font-weight: 700;
+        letter-spacing: 1px;
+        font-variant-numeric: tabular-nums;
+      }
+
+      #loading-stage {
+        margin-top: 10px;
+        color: rgba(255, 255, 255, 0.55);
+        font-size: 13px;
+        letter-spacing: 0.4px;
+        min-height: 18px;
+      }
+
+      #loading-hint {
+        position: absolute;
+        bottom: 34px;
+        left: 24px;
+        right: 24px;
+        text-align: center;
+        color: rgba(255, 255, 255, 0.3);
+        font-size: 11.5px;
+        line-height: 1.5;
+      }
+
+      .error #loading-percent { color: #ff5c7a; font-size: 20px; }
+      .error .ring-heart { animation: none; opacity: 0.3; }
+    </style>
+  </head>
+  <body>
+    <div id="unity-container">
+      <canvas id="unity-canvas" tabindex="-1"></canvas>
+    </div>
+
+    <div id="loading-cover">
+      <div class="ring">
+        <svg viewBox="0 0 100 100">
+          <defs>
+            <linearGradient id="ringGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#ff5fa2"/>
+              <stop offset="100%" stop-color="#9b5cff"/>
+            </linearGradient>
+          </defs>
+          <circle class="ring-track" cx="50" cy="50" r="45"></circle>
+          <circle class="ring-fill" id="ring-fill" cx="50" cy="50" r="45"></circle>
+        </svg>
+        <div class="ring-heart">💗</div>
+      </div>
+
+      <div id="loading-percent">0%</div>
+      <div id="loading-stage">Прокидаємось...</div>
+      <div id="loading-hint">
+        Перше завантаження триває довше — Мія переїжджає до тебе.<br>
+        Наступного разу вона запуститься майже миттєво.
+      </div>
+    </div>
+
+    <script src="Build/tamagotchi-webgl.loader.js"></script>
+    <script>
+      (function () {
+        "use strict";
+
+        // ---------- Діагностика на телефоні: відкрий сторінку з ?debug=1 ----------
+        // Без цього браузер ховає справжню помилку за словами "Script error."
+        var DEBUG = /[?&]debug=1/.test(location.search);
+        var debugBox = null;
+
+        function logToScreen(text) {
+          console.warn(text);
+          if (!DEBUG) return;
+
+          if (!debugBox) {
+            debugBox = document.createElement("div");
+            debugBox.style.cssText =
+              "position:fixed;left:0;right:0;bottom:0;max-height:45%;overflow:auto;z-index:999;" +
+              "background:rgba(0,0,0,.88);color:#8fe3ff;font:11px/1.45 monospace;" +
+              "padding:8px;white-space:pre-wrap;";
+            document.body.appendChild(debugBox);
+          }
+
+          debugBox.textContent += text + "\n";
+        }
+
+        window.addEventListener("error", function (e) {
+          logToScreen("ERROR: " + (e.message || "?") + "  @ " + (e.filename || "?") + ":" + (e.lineno || 0));
+        });
+
+        window.addEventListener("unhandledrejection", function (e) {
+          var r = e.reason;
+          logToScreen("PROMISE: " + (r && r.message ? r.message : r));
+        });
+
+        // ---------- Telegram ----------
+        var tg = window.Telegram && window.Telegram.WebApp;
+
+        if (tg) {
+          tg.ready();
+          tg.expand();
+
+          // Найважливіше для скролу: без цього вертикальний свайп усередині
+          // Mini App згортає вікно Telegram замість того, щоб гортати чат.
+          if (typeof tg.disableVerticalSwipes === "function") {
+            tg.disableVerticalSwipes();
+          }
+
+          if (typeof tg.setHeaderColor === "function") {
+            try { tg.setHeaderColor("#17121b"); } catch (e) { /* стара версія Bot API */ }
+          }
+        }
+
+        // ---------- Елементи ----------
+        var canvas = document.querySelector("#unity-canvas");
+        var cover = document.querySelector("#loading-cover");
+        var percentLabel = document.querySelector("#loading-percent");
+        var stageLabel = document.querySelector("#loading-stage");
+        var ringFill = document.querySelector("#ring-fill");
+
+        var RING_LENGTH = 282.7;
+
+        // Unity віддає прогрес ривками (файл завантажився -> стрибок на 40%).
+        // Тому ведемо власне згладжене значення й доганяємо ним ціль щокадру.
+        var targetProgress = 0;
+        var shownProgress = 0;
+        var finished = false;
+
+        var STAGES = [
+          [0.00, "Завантаження ресурсів..."],
+          [0.35, "Розпаковуємо аватар..."],
+          [0.70, "Готуємо сцену..."],
+          [0.92, "Майже готово..."]
+        ];
+
+        function currentStage(p) {
+          var text = STAGES[0][1];
+          for (var i = 0; i < STAGES.length; i++) {
+            if (p >= STAGES[i][0]) text = STAGES[i][1];
+          }
+          return text;
+        }
+
+        function render() {
+          if (finished) return;
+
+          // Плавне наближення до цілі (експоненційне згладжування)
+          shownProgress += (targetProgress - shownProgress) * 0.08;
+
+          // Відсоток ніколи не має стрибати назад
+          var pct = Math.min(99, Math.floor(shownProgress * 100));
+
+          percentLabel.textContent = pct + "%";
+          stageLabel.textContent = currentStage(shownProgress);
+          ringFill.style.strokeDashoffset = RING_LENGTH * (1 - shownProgress);
+
+          requestAnimationFrame(render);
+        }
+
+        requestAnimationFrame(render);
+
+        function hideCover() {
+          finished = true;
+          percentLabel.textContent = "100%";
+          stageLabel.textContent = "Готово";
+          ringFill.style.strokeDashoffset = 0;
+
+          setTimeout(function () {
+            cover.style.opacity = "0";
+            setTimeout(function () { cover.style.display = "none"; }, 600);
+          }, 250);
+        }
+
+        function showError(message) {
+          finished = true;
+          cover.classList.add("error");
+          percentLabel.textContent = "Не вдалося завантажити";
+          stageLabel.textContent = "Перевір інтернет і онови сторінку";
+          console.error(message);
+        }
+
+        // ---------- Запуск Unity ----------
+        createUnityInstance(canvas, {
+          arguments: [],
+          dataUrl: "Build/tamagotchi-webgl.data.br",
+          frameworkUrl: "Build/tamagotchi-webgl.framework.js.br",
+          codeUrl: "Build/tamagotchi-webgl.wasm.br",
+          streamingAssetsUrl: "StreamingAssets",
+          companyName: "DefaultCompany",
+          productName: "TamagoChi",
+          productVersion: "0.1.0",
+          // Приглушуємо спливаюче вікно "Script error"
+          showBanner: function (msg, type) { logToScreen("[Unity/" + type + "] " + msg); },
+          // true = не показувати модальне вікно Unity гравцеві
+          errorHandler: function (message, filename, lineno) {
+            logToScreen("UNITY: " + message + "  @ " + (filename || "?") + ":" + (lineno || 0));
+            return true;
+          }
+        }, function (progress) {
+          if (progress > targetProgress) targetProgress = progress;
+        }).then(function () {
+          targetProgress = 1;
+          hideCover();
+        }).catch(showError);
+      })();
     </script>
   </body>
 </html>
