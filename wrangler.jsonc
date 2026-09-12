@@ -9,6 +9,10 @@
     // перелічено в .assetsignore.
     "directory": "./",
     "binding": "ASSETS",
+    // За замовчуванням запит, який збігається з файлом, віддається напряму,
+    // минаючи worker.js — і .br знову стискаються вдруге. Ці шляхи мусять
+    // пройти через скрипт; решта (index.html, loader.js) — напряму, безкоштовно.
+    "run_worker_first": ["/Build/*.br"],
     // Без цього Cloudflare сам віддавав би 404-сторінку; нам потрібні
     // справжні статуси, бо worker.js дивиться на response.status.
     "not_found_handling": "none"
