@@ -16,12 +16,19 @@ export default {
       return response;
     }
 
+    // Тіло читається цілком, а не передається потоком: для потоку невідомої
+    // довжини runtime не ставить Content-Length, а без нього лоадер Unity не
+    // показує відсотків (кільце стоїть на 0% до кінця) і не може перевіряти
+    // кеш за розміром. 26 МБ у памʼяті Worker-а — далеко від ліміту 128 МБ.
+    const body = await response.arrayBuffer();
+
     const headers = new Headers(response.headers);
     headers.set("Content-Encoding", "br");
     headers.set("Content-Type", contentTypeFor(url.pathname));
+    headers.set("Content-Length", String(body.byteLength));
     headers.set("Cache-Control", "public, max-age=31536000, immutable");
 
-    return new Response(response.body, {
+    return new Response(body, {
       status: response.status,
       headers,
       encodeBody: "manual",
