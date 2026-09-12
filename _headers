@@ -1,0 +1,29 @@
+# Заголовки для Cloudflare Pages — аналог vercel.json.
+# Vercel цей файл ігнорує, тож він нічого не ламає, поки хостинг не змінено.
+#
+# Brotli без Decompression Fallback: браузер розтискає .br сам, але лише
+# якщо сервер прямо каже Content-Encoding: br. Без цього Unity не завантажиться.
+# Імена файлів — хеші вмісту (Name Files As Hashes), тому кеш на рік безпечний;
+# index.html натомість не кешується взагалі, бо саме в ньому нові імена.
+
+/Build/*.wasm.br
+  Content-Encoding: br
+  Content-Type: application/wasm
+  Cache-Control: public, max-age=31536000, immutable
+
+/Build/*.js.br
+  Content-Encoding: br
+  Content-Type: application/javascript
+  Cache-Control: public, max-age=31536000, immutable
+
+/Build/*.data.br
+  Content-Encoding: br
+  Content-Type: application/octet-stream
+  Cache-Control: public, max-age=31536000, immutable
+
+/Build/*.loader.js
+  Content-Type: application/javascript
+  Cache-Control: public, max-age=3600
+
+/index.html
+  Cache-Control: no-cache
