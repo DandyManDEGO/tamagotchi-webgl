@@ -1,0 +1,16 @@
+{
+  // Конфіг Cloudflare Worker для білда. Ім'я має збігатися з Worker-ом у панелі
+  // (tamagotchi-webgl), інакше wrangler створить другий.
+  "name": "tamagotchi-webgl",
+  "main": "worker.js",
+  "compatibility_date": "2026-09-01",
+  "assets": {
+    // Коренева папка репозиторію: index.html + Build/. Що НЕ викладати,
+    // перелічено в .assetsignore.
+    "directory": "./",
+    "binding": "ASSETS",
+    // Без цього Cloudflare сам віддавав би 404-сторінку; нам потрібні
+    // справжні статуси, бо worker.js дивиться на response.status.
+    "not_found_handling": "none"
+  }
+}

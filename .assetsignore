@@ -1,0 +1,7 @@
+# Що не викладати як статичні файли Worker-а (синтаксис як у .gitignore)
+.git
+.gitignore
+.assetsignore
+worker.js
+wrangler.jsonc
+vercel.json
