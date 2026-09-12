@@ -172,7 +172,7 @@
       </div>
     </div>
 
-    <script src="Build/b9d0bda4da151f46c56275db63491a3c.loader.js"></script>
+    <script src="Build/76634db99add2743b04b1c03e704cf35.loader.js"></script>
     <script>
       (function () {
         "use strict";
@@ -197,6 +197,36 @@
 
           debugBox.textContent += text + "\n";
         }
+
+        // ---------- Таймлайн запуску ----------
+        // Секунди від відкриття вкладки до кожного етапу. Етапи з Unity
+        // приходять через StartupTimeline.cs (jslib → window.tgStartupMark).
+        // Це відповідь на «чому перший запуск триває дві хвилини»: видно,
+        // скільки зʼїло завантаження, скільки wasm, скільки перший кадр
+        // (компіляція шейдерів) і скільки завіса.
+        var marks = [];
+        var lastMarkAt = 0;
+        var timelineBox = null;
+
+        window.tgStartupMark = function (name) {
+          var now = performance.now();
+          var line = name + " " + (now / 1000).toFixed(1) + "s (+" + ((now - lastMarkAt) / 1000).toFixed(1) + ")";
+          lastMarkAt = now;
+          marks.push(line);
+          console.info("[startup] " + line);
+
+          if (!DEBUG) return;
+
+          if (!timelineBox) {
+            timelineBox = document.createElement("div");
+            timelineBox.style.cssText =
+              "position:fixed;left:0;right:0;top:0;z-index:1000;padding:6px 8px;" +
+              "background:rgba(0,0,0,.75);color:#ffd166;font:11px/1.4 monospace;white-space:pre-wrap;";
+            document.body.appendChild(timelineBox);
+          }
+
+          timelineBox.textContent = marks.join("  |  ");
+        };
 
         window.addEventListener("error", function (e) {
           logToScreen("ERROR: " + (e.message || "?") + "  @ " + (e.filename || "?") + ":" + (e.lineno || 0));
@@ -306,12 +336,14 @@
         if (dprMatch && parseFloat(dprMatch[1]) > 0) dpr = parseFloat(dprMatch[1]);
 
         // ---------- Запуск Unity ----------
+        var downloadMarked = false;
+        window.tgStartupMark("page");
         createUnityInstance(canvas, {
           arguments: [],
           devicePixelRatio: dpr,
-          dataUrl: "Build/4c3e2c7902b77f9f85d3b605421cb59f.data.br",
-          frameworkUrl: "Build/f4c502cb899bf56f4ae3d852db69c018.framework.js.br",
-          codeUrl: "Build/f4f36477e26a9598f73dfcfd49a7153c.wasm.br",
+          dataUrl: "Build/97aaf10b6a79fcc9dee8e46410c87015.data.br",
+          frameworkUrl: "Build/c8ca97fb922bb95d8598b1d6c98943c8.framework.js.br",
+          codeUrl: "Build/455599fb8c554da0b80262d1d4440c5b.wasm.br",
           streamingAssetsUrl: "StreamingAssets",
           companyName: "DefaultCompany",
           productName: "TamagoChi",
@@ -325,8 +357,15 @@
           }
         }, function (progress) {
           if (progress > targetProgress) targetProgress = progress;
+          // Лоадер Unity віддає 0.9 рівно тоді, коли всі файли завантажено;
+          // далі йде компіляція wasm і старт двигуна.
+          if (progress >= 0.9 && !downloadMarked) {
+            downloadMarked = true;
+            window.tgStartupMark("download");
+          }
         }).then(function () {
           targetProgress = 1;
+          window.tgStartupMark("instance");
           hideCover();
         }).catch(showError);
       })();
