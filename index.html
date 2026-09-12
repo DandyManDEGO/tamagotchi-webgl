@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="uk">
+<html lang="en">
   <head>
     <meta charset="utf-8">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
@@ -165,14 +165,104 @@
       </div>
 
       <div id="loading-percent">0%</div>
-      <div id="loading-stage">Прокидаємось...</div>
+      <div id="loading-stage">Waking up...</div>
       <div id="loading-hint">
-        Перше завантаження триває довше — Мія переїжджає до тебе.<br>
-        Наступного разу вона запуститься майже миттєво.
+        The first load takes longer — Mia is moving in with you.<br>
+        Next time she’ll start almost instantly.
       </div>
     </div>
 
-    <script src="Build/abaefe98c9c27c35e272b8e223681375.loader.js"></script>
+    <!-- Мова екрана завантаження. Unity ще не стартував, тож вибір робимо
+         тут: мова Telegram → мова браузера → англійська. Той самий порядок,
+         що й у грі (Localization.ResolveInitialLanguage), лише без
+         збереженого вибору гравця — до PlayerPrefs звідси не дістатися.
+         Перелік мов має збігатися з LanguageInfo.Available у Language.cs. -->
+    <script>
+      (function () {
+        "use strict";
+
+        var STRINGS = {
+          en: {
+            wake: "Waking up...",
+            stages: ["Loading assets...", "Unpacking the avatar...", "Preparing the room...", "Almost there..."],
+            hint: ["The first load takes longer — Mia is moving in with you.", "Next time she’ll start almost instantly."],
+            errorTitle: "Couldn’t load",
+            errorHint: "Check your connection and refresh the page"
+          },
+          uk: {
+            wake: "Прокидаємось...",
+            stages: ["Завантаження ресурсів...", "Розпаковуємо аватар...", "Готуємо сцену...", "Майже готово..."],
+            hint: ["Перше завантаження триває довше — Мія переїжджає до тебе.", "Наступного разу вона запуститься майже миттєво."],
+            errorTitle: "Не вдалося завантажити",
+            errorHint: "Перевір інтернет і онови сторінку"
+          },
+          ru: {
+            wake: "Просыпаемся...",
+            stages: ["Загружаем ресурсы...", "Распаковываем аватар...", "Готовим сцену...", "Почти готово..."],
+            hint: ["Первая загрузка длится дольше — Мия переезжает к тебе.", "В следующий раз она запустится почти мгновенно."],
+            errorTitle: "Не удалось загрузить",
+            errorHint: "Проверь интернет и обнови страницу"
+          },
+          es: {
+            wake: "Despertando...",
+            stages: ["Cargando recursos...", "Desempaquetando el avatar...", "Preparando la escena...", "Casi listo..."],
+            hint: ["La primera carga tarda más: Mia se está mudando contigo.", "La próxima vez arrancará casi al instante."],
+            errorTitle: "No se pudo cargar",
+            errorHint: "Revisa tu conexión y recarga la página"
+          },
+          de: {
+            wake: "Aufwachen...",
+            stages: ["Ressourcen werden geladen...", "Avatar wird entpackt...", "Szene wird vorbereitet...", "Fast fertig..."],
+            hint: ["Der erste Start dauert länger – Mia zieht gerade bei dir ein.", "Beim nächsten Mal startet sie fast sofort."],
+            errorTitle: "Laden fehlgeschlagen",
+            errorHint: "Prüfe deine Verbindung und lade die Seite neu"
+          }
+        };
+
+        // "pt-BR" → "pt"; нам потрібен лише код мови без регіону.
+        function normalize(code) {
+          if (!code) return "";
+          return String(code).toLowerCase().split(/[-_]/)[0];
+        }
+
+        function pickLanguage() {
+          var candidates = [];
+
+          try {
+            var tg = window.Telegram && window.Telegram.WebApp;
+            var user = tg && tg.initDataUnsafe && tg.initDataUnsafe.user;
+            if (user && user.language_code) candidates.push(user.language_code);
+          } catch (e) { /* поза Telegram SDK може не бути */ }
+
+          if (navigator.languages) candidates = candidates.concat(navigator.languages);
+          if (navigator.language) candidates.push(navigator.language);
+
+          for (var i = 0; i < candidates.length; i++) {
+            var code = normalize(candidates[i]);
+            if (STRINGS.hasOwnProperty(code)) return code;
+          }
+
+          return "en";
+        }
+
+        var lang = pickLanguage();
+        var t = STRINGS[lang];
+
+        document.documentElement.lang = lang;
+        document.getElementById("loading-stage").textContent = t.wake;
+
+        var hint = document.getElementById("loading-hint");
+        hint.textContent = "";
+        hint.appendChild(document.createTextNode(t.hint[0]));
+        hint.appendChild(document.createElement("br"));
+        hint.appendChild(document.createTextNode(t.hint[1]));
+
+        // Основний скрипт нижче бере звідси назви етапів і тексти помилок.
+        window.__loadingStrings = t;
+      })();
+    </script>
+
+    <script src="Build/e2825dc5db2e4196e8a181d9f13faac9.loader.js"></script>
     <script>
       (function () {
         "use strict";
@@ -270,11 +360,19 @@
         var shownProgress = 0;
         var finished = false;
 
+        // Тексти — зі скрипта мови вище; якщо його чомусь немає, лишаємось
+        // з англійською, а не з порожнім рядком.
+        var L = window.__loadingStrings || {
+          stages: ["Loading assets...", "Unpacking the avatar...", "Preparing the room...", "Almost there..."],
+          errorTitle: "Couldn’t load",
+          errorHint: "Check your connection and refresh the page"
+        };
+
         var STAGES = [
-          [0.00, "Завантаження ресурсів..."],
-          [0.35, "Розпаковуємо аватар..."],
-          [0.70, "Готуємо сцену..."],
-          [0.92, "Майже готово..."]
+          [0.00, L.stages[0]],
+          [0.35, L.stages[1]],
+          [0.70, L.stages[2]],
+          [0.92, L.stages[3]]
         ];
 
         function currentStage(p) {
@@ -318,8 +416,8 @@
         function showError(message) {
           finished = true;
           cover.classList.add("error");
-          percentLabel.textContent = "Не вдалося завантажити";
-          stageLabel.textContent = "Перевір інтернет і онови сторінку";
+          percentLabel.textContent = L.errorTitle;
+          stageLabel.textContent = L.errorHint;
           console.error(message);
         }
 
@@ -341,9 +439,9 @@
         createUnityInstance(canvas, {
           arguments: [],
           devicePixelRatio: dpr,
-          dataUrl: "Build/45b91348352c7b4a46d3ff631d5d67ff.data.br",
+          dataUrl: "Build/6ad8adadafad026d14126eae444768bf.data.br",
           frameworkUrl: "Build/138aa4a5d4d2f83261edfcfa4bd65fb6.framework.js.br",
-          codeUrl: "Build/fe29be21c6dfea0faadfd13bbb1681c3.wasm.br",
+          codeUrl: "Build/7733627621dcddf77808e237f8ae7061.wasm.br",
           streamingAssetsUrl: "StreamingAssets",
           companyName: "DefaultCompany",
           productName: "TamagoChi",
