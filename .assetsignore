@@ -5,3 +5,6 @@
 worker.js
 wrangler.jsonc
 vercel.json
+# Файл даних понад 25 MiB — ліміт Cloudflare на один ассет. Живе в R2 (див. wrangler.jsonc).
+Build/*.data.br
+.wrangler

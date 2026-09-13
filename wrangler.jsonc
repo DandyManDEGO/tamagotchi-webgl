@@ -16,5 +16,14 @@
     // Без цього Cloudflare сам віддавав би 404-сторінку; нам потрібні
     // справжні статуси, бо worker.js дивиться на response.status.
     "not_found_handling": "none"
-  }
+  },
+  // Великий .data.br (>25 MiB, ліміт статичних ассетів Worker-а) лежить у R2.
+  // Заливається вручну перед пушем:
+  //   npx wrangler r2 object put tamagochi-build/Build/<hash>.data.br --file Build/<hash>.data.br --content-type application/octet-stream --content-encoding br --remote
+  "r2_buckets": [
+    {
+      "binding": "BUILD",
+      "bucket_name": "tamagochi-build"
+    }
+  ]
 }
