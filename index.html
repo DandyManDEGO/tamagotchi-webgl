@@ -172,6 +172,111 @@
       </div>
     </div>
 
+    <!-- Перехоплення помилок JS від першої миті. Unity ще нема, тому все,
+         що впало до її старту (лоадер, wasm, Telegram SDK), лягає в чергу і
+         відправляється, щойно ErrorReporter.cs дасть адресу бекенду й ключ
+         гравця. Якщо гра так і не піднялася — черга йде на запасну адресу
+         нижче, бо збій завантаження треба побачити найбільше. -->
+    <script>
+      (function () {
+        "use strict";
+
+        // Та сама адреса, що в OpenRouterClient.backendUrl. Використовується
+        // лише коли Unity не стартувала і не встигла назвати свою.
+        var FALLBACK_BACKEND = "https://astonishing-flow-production-52b1.up.railway.app";
+
+        var state = { url: "", playerId: "", context: {}, queue: [], sent: 0, seen: {} };
+        var MAX_PER_SESSION = 20;
+        var MAX_PER_FINGERPRINT = 3;
+
+        function clip(text, limit) {
+          text = String(text == null ? "" : text);
+          return text.length > limit ? text.slice(0, limit) + "…" : text;
+        }
+
+        function browserContext() {
+          return {
+            url: clip(location.href.replace(/tgWebAppData=[^&#]*/, "tgWebAppData=…"), 200),
+            ua: clip(navigator.userAgent, 200),
+            screen: screen.width + "x" + screen.height + " @" + (window.devicePixelRatio || 1),
+            online: String(navigator.onLine),
+            memory: navigator.deviceMemory ? navigator.deviceMemory + " GB" : "",
+            telegram: window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp.platform : "none"
+          };
+        }
+
+        function post(url, report) {
+          var headers = { "Content-Type": "application/json", "ngrok-skip-browser-warning": "true" };
+          var initData = window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData;
+          if (initData) headers["X-Telegram-InitData"] = initData;
+
+          try {
+            fetch(url + "/api/errors", { method: "POST", headers: headers, body: JSON.stringify(report), keepalive: true })
+              .catch(function () {});
+          } catch (e) { /* звіт про звіт нікому не потрібен */ }
+        }
+
+        function send(report) {
+          var target = state.url || FALLBACK_BACKEND;
+          if (!target || state.sent >= MAX_PER_SESSION) return;
+
+          var ctx = browserContext();
+          for (var key in state.context) ctx[key] = state.context[key];
+          report.context = ctx;
+          report.player_id = state.playerId || "";
+          state.sent++;
+          post(target, report);
+        }
+
+        function report(kind, message, stack) {
+          message = clip(message, 1000);
+          if (!message) return;
+
+          var fingerprint = kind + "|" + message.slice(0, 120);
+          state.seen[fingerprint] = (state.seen[fingerprint] || 0) + 1;
+          if (state.seen[fingerprint] > MAX_PER_FINGERPRINT) return;
+
+          var item = { kind: kind, message: message, stack: clip(stack, 8000), breadcrumbs: [] };
+
+          // До init тримаємо в черзі: ключ гравця й адреса ще невідомі, а
+          // гостьовий id живе в PlayerPrefs, куди звідси не дістатися.
+          if (state.url) send(item); else state.queue.push(item);
+        }
+
+        window.tgErrors = {
+          report: report,
+          init: function (url, playerId, context) {
+            state.url = url || state.url;
+            state.playerId = playerId || "";
+            state.context = context || {};
+            var queued = state.queue.splice(0);
+            queued.forEach(send);
+          }
+        };
+
+        window.addEventListener("error", function (e) {
+          // "Script error." без деталей — це крос-доменний скрипт (Telegram
+          // SDK); повідомляти про нього нема чого.
+          if (e.message === "Script error.") return;
+          var err = e.error;
+          report("js", e.message || String(err), err && err.stack ? err.stack : (e.filename || "") + ":" + (e.lineno || 0));
+        });
+
+        window.addEventListener("unhandledrejection", function (e) {
+          var r = e.reason;
+          report("js", r && r.message ? r.message : String(r), r && r.stack ? r.stack : "");
+        });
+
+        // Якщо гра не стартувала за хвилину після відкриття — черга
+        // (з помилкою лоадера, якщо була) їде на запасну адресу як є.
+        setTimeout(function () {
+          if (!state.url && state.queue.length) {
+            state.queue.splice(0).forEach(send);
+          }
+        }, 60000);
+      })();
+    </script>
+
     <!-- Мова екрана завантаження. Unity ще не стартував, тож вибір робимо
          тут: мова Telegram → мова браузера → англійська. Той самий порядок,
          що й у грі (Localization.ResolveInitialLanguage), лише без
@@ -262,7 +367,7 @@
       })();
     </script>
 
-    <script src="Build/899edc778f4ed4224fb55d62cae99435.loader.js"></script>
+    <script src="Build/ea18252e54e34a5811bd42da9b907023.loader.js"></script>
     <script>
       (function () {
         "use strict";
@@ -419,6 +524,10 @@
           percentLabel.textContent = L.errorTitle;
           stageLabel.textContent = L.errorHint;
           console.error(message);
+          if (window.tgErrors) {
+            window.tgErrors.report("load", message && message.message ? message.message : String(message),
+              message && message.stack ? message.stack : "");
+          }
         }
 
         // ---------- Роздільна здатність канваса ----------
@@ -439,9 +548,9 @@
         createUnityInstance(canvas, {
           arguments: [],
           devicePixelRatio: dpr,
-          dataUrl: "Build/38e7d2d2ceb385e909cde35ac18f96cb.data.br",
-          frameworkUrl: "Build/c1b92ebc1870bcda56a84b26c88c48e7.framework.js.br",
-          codeUrl: "Build/212d06ed31bd6ba1328403bc39a39542.wasm.br",
+          dataUrl: "Build/b9193cdc9a99b0db6e5b513b0e2eff6d.data.br",
+          frameworkUrl: "Build/8b8411fc715cf13ed1b0cdabaf9e703a.framework.js.br",
+          codeUrl: "Build/8df4bff57c1b3aff91dead58fc02cbf3.wasm.br",
           streamingAssetsUrl: "StreamingAssets",
           companyName: "DefaultCompany",
           productName: "TamagoChi",
@@ -451,6 +560,11 @@
           // true = не показувати модальне вікно Unity гравцеві
           errorHandler: function (message, filename, lineno) {
             logToScreen("UNITY: " + message + "  @ " + (filename || "?") + ":" + (lineno || 0));
+            // Сюди приходять RuntimeError із wasm — ті самі NullReference, які
+            // Unity в режимі «explicitly thrown only» не ловить сама.
+            if (window.tgErrors) {
+              window.tgErrors.report("js", String(message), (filename || "?") + ":" + (lineno || 0));
+            }
             return true;
           }
         }, function (progress) {
