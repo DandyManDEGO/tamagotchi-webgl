@@ -340,6 +340,20 @@
             hint: ["Pierwsze ładowanie trwa dłużej — Mia się do ciebie wprowadza.", "Następnym razem uruchomi się niemal od razu."],
             errorTitle: "Nie udało się załadować",
             errorHint: "Sprawdź połączenie i odśwież stronę"
+          },
+          it: {
+            wake: "Ci svegliamo...",
+            stages: ["Caricamento risorse...", "Spacchettiamo l'avatar...", "Prepariamo la stanza...", "Quasi pronto..."],
+            hint: ["Il primo caricamento richiede più tempo — Mia si sta trasferendo da te.", "La prossima volta partirà quasi all'istante."],
+            errorTitle: "Caricamento non riuscito",
+            errorHint: "Controlla la connessione e ricarica la pagina"
+          },
+          fr: {
+            wake: "Réveil en cours...",
+            stages: ["Chargement des ressources...", "Déballage de l'avatar...", "Préparation de la chambre...", "Presque prêt..."],
+            hint: ["Le premier chargement est plus long — Mia emménage chez toi.", "La prochaine fois, elle démarrera presque instantanément."],
+            errorTitle: "Échec du chargement",
+            errorHint: "Vérifie ta connexion et recharge la page"
           }
         };
 
@@ -386,7 +400,7 @@
       })();
     </script>
 
-    <script src="Build/397ee2693fc5d610b06fc3a03eaa7138.loader.js"></script>
+    <script src="Build/02b97033246037bee182d63696373cb4.loader.js"></script>
     <script>
       (function () {
         "use strict";
@@ -567,13 +581,13 @@
         createUnityInstance(canvas, {
           arguments: [],
           devicePixelRatio: dpr,
-          dataUrl: "Build/bd03da097141cd758b5614e6eb3d69e7.data.br",
-          frameworkUrl: "Build/585b18ae03fd53a37a2ee14521194b5e.framework.js.br",
-          codeUrl: "Build/fe7d679a0ebd705ec2f5649fce73eda8.wasm.br",
+          dataUrl: "Build/4748f41d39f7de7dcbd651b6f1ecc121.data.br",
+          frameworkUrl: "Build/bf3d5516dd0d868c88f8a93a7fcf0fae.framework.js.br",
+          codeUrl: "Build/66599aa43be8559d2af970b2c1e0ec17.wasm.br",
           streamingAssetsUrl: "StreamingAssets",
           companyName: "Dandy",
           productName: "My AI Mates",
-          productVersion: "0.3.1",
+          productVersion: "0.3.3",
           // Приглушуємо спливаюче вікно "Script error"
           showBanner: function (msg, type) { logToScreen("[Unity/" + type + "] " + msg); },
           // true = не показувати модальне вікно Unity гравцеві
